@@ -1,0 +1,69 @@
+version: '3.9'
+
+networks:
+
+  my_network:
+    driver: bridge
+
+# Services
+services:
+
+  # PHP FPM Service
+  php:
+    container_name: php
+    build:
+      dockerfile: Dockerfile
+      context: .
+    volumes:
+      - '../:/var/www/html'
+      - './php-logging.conf:/usr/local/etc/php-fpm.d/zz-log.conf'
+    depends_on:
+      - mariadb
+    networks:
+      - my_network
+
+  # Nginx Service
+  nginx:
+    container_name: web
+    image: nginx:latest
+    ports:
+      - 8080:80
+    links:
+      - 'php'
+    volumes:
+      - '../:/var/www/html'
+      - './nginx-conf:/etc/nginx/conf.d'
+    depends_on:
+      - php
+    networks:
+      - my_network
+
+  mariadb:
+    container_name: mariadb
+    restart: unless-stopped
+    image: mariadb:latest
+    environment:
+      - MYSQL_DATABASE=otpixto
+      - MYSQL_USER=otpixto
+      - MYSQL_PASSWORD=otpixto
+      - MYSQL_ROOT_PASSWORD=otpixto
+    ports:
+      - "3306:3306"
+    volumes:
+#      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mysqldata:/var/lib/mysql
+    networks:
+      - my_network
+
+  # MariaDB Service
+#  mariadb:
+#    container_name: db
+#    image: mariadb:10.9
+#    environment:
+#      MYSQL_ROOT_PASSWORD: myrootpassword
+#    volumes:
+#      - './mysqldata:/var/lib/mysql'
+#
+# Volumes
+volumes:
+  mysqldata:
